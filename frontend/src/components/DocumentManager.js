@@ -46,14 +46,16 @@ const DocumentManager = () => {
 
     try {
       // Use the new uploadFiles function for binary files
-      const binaryFiles = acceptedFiles.filter(file => 
-        !['.txt', '.md'].includes(file.name.toLowerCase().split('.').pop())
-      );
+      const binaryFiles = acceptedFiles.filter(file => {
+        const extension = file.name.toLowerCase().split('.').pop();
+        return !['txt', 'md'].includes(extension);
+      });
       
       // Use the ingestDocument function for text files
-      const textFiles = acceptedFiles.filter(file => 
-        ['.txt', '.md'].includes('.' + file.name.toLowerCase().split('.').pop())
-      );
+      const textFiles = acceptedFiles.filter(file => {
+        const extension = file.name.toLowerCase().split('.').pop();
+        return ['txt', 'md'].includes(extension);
+      });
 
       const results = [];
 
@@ -347,6 +349,16 @@ const DocumentManager = () => {
                 sx={{ mt: 2 }}
               >
                 {uploadStatus.message}
+                {uploadStatus.type === 'success' && (
+                  <Box sx={{ mt: 1 }}>
+                    <Typography variant="body2">
+                      ✅ Documents are now indexed and ready for AI queries!
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Go to the Chat interface to ask questions about your documents.
+                    </Typography>
+                  </Box>
+                )}
               </Alert>
             )}
           </Paper>

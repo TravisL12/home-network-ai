@@ -302,6 +302,76 @@ const StatusDashboard = () => {
             </Paper>
           </Grid>
 
+          {/* Document Status */}
+          {status.documents && (
+            <Grid item xs={12}>
+              <Paper elevation={1} sx={{ p: 2 }}>
+                <Typography variant="h6" gutterBottom>
+                  Knowledge Base Status
+                </Typography>
+                
+                <Grid container spacing={2}>
+                  <Grid item xs={12} md={6}>
+                    <List dense>
+                      <ListItem>
+                        <ListItemIcon>
+                          <DocumentIcon />
+                        </ListItemIcon>
+                        <ListItemText
+                          primary="Total Documents"
+                          secondary={`${status.documents.total || 0} documents indexed`}
+                        />
+                      </ListItem>
+                      
+                      <ListItem>
+                        <ListItemIcon>
+                          <ImageIcon />
+                        </ListItemIcon>
+                        <ListItemText
+                          primary="Images with OCR"
+                          secondary={`${status.documents.images || 0} images processed`}
+                        />
+                      </ListItem>
+                    </List>
+                  </Grid>
+                  
+                  <Grid item xs={12} md={6}>
+                    <Typography variant="subtitle2" gutterBottom>
+                      Recent Documents:
+                    </Typography>
+                    {status.documents.recentDocuments && status.documents.recentDocuments.length > 0 ? (
+                      <List dense>
+                        {status.documents.recentDocuments.map((doc, index) => (
+                          <ListItem key={index} sx={{ py: 0.5 }}>
+                            <ListItemText
+                              primary={doc.title}
+                              secondary={`${doc.fileType} • ${new Date(doc.createdAt).toLocaleDateString()}`}
+                              primaryTypographyProps={{ variant: 'body2' }}
+                              secondaryTypographyProps={{ variant: 'caption' }}
+                            />
+                          </ListItem>
+                        ))}
+                      </List>
+                    ) : (
+                      <Typography variant="body2" color="text.secondary">
+                        No documents found. Upload documents to start querying them.
+                      </Typography>
+                    )}
+                  </Grid>
+                </Grid>
+                
+                {status.documents.total > 0 && (
+                  <Box sx={{ mt: 2 }}>
+                    <Alert severity="success" icon={<CheckCircleIcon />}>
+                      ✅ Your documents are indexed and ready for AI queries! 
+                      Try asking about them in the Chat interface.
+                    </Alert>
+                  </Box>
+                )}
+              </Paper>
+            </Grid>
+          )}
+
           {/* Service Details */}
           {(status.ollama?.error || status.weaviate?.error) && (
             <Grid item xs={12}>

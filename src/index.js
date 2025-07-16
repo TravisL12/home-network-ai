@@ -167,9 +167,23 @@ app.get('/api/status', async (req, res) => {
     const ollamaStatus = await ollamaService.getStatus();
     const weaviateStatus = await weaviateService.getStatus();
     
+    // Get document counts from Weaviate
+    const documents = await weaviateService.getAllDocuments();
+    const images = await weaviateService.getAllImages();
+    
     res.json({
       ollama: ollamaStatus,
       weaviate: weaviateStatus,
+      documents: {
+        total: documents.length,
+        images: images.length,
+        text: documents.length,
+        recentDocuments: documents.slice(0, 5).map(doc => ({
+          title: doc.title,
+          fileType: doc.fileType,
+          createdAt: doc.createdAt
+        }))
+      },
       timestamp: new Date().toISOString()
     });
   } catch (error) {

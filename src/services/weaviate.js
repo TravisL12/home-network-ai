@@ -177,24 +177,47 @@ class WeaviateService {
     await this.initialize();
 
     try {
+      // Split query into terms and create search operands for each term
+      const terms = query.toLowerCase().split(/\s+/).filter(term => term.length > 0);
+      const documentOperands = [];
+      const imageOperands = [];
+      
+      // Create search operands for each term
+      terms.forEach(term => {
+        documentOperands.push(
+          {
+            path: ['title'],
+            operator: 'Like',
+            valueString: `*${term}*`
+          },
+          {
+            path: ['content'],
+            operator: 'Like',
+            valueString: `*${term}*`
+          }
+        );
+        
+        imageOperands.push(
+          {
+            path: ['filename'],
+            operator: 'Like',
+            valueString: `*${term}*`
+          },
+          {
+            path: ['extractedText'],
+            operator: 'Like',
+            valueString: `*${term}*`
+          }
+        );
+      });
+
       const documentResults = await this.client.graphql
         .get()
         .withClassName('Document')
         .withFields('title content filePath fileType metadata createdAt')
         .withWhere({
           operator: 'Or',
-          operands: [
-            {
-              path: ['title'],
-              operator: 'Like',
-              valueString: `*${query}*`
-            },
-            {
-              path: ['content'],
-              operator: 'Like',
-              valueString: `*${query}*`
-            }
-          ]
+          operands: documentOperands
         })
         .withLimit(limit)
         .do();
@@ -205,18 +228,7 @@ class WeaviateService {
         .withFields('filename extractedText filePath dimensions format metadata createdAt')
         .withWhere({
           operator: 'Or',
-          operands: [
-            {
-              path: ['filename'],
-              operator: 'Like',
-              valueString: `*${query}*`
-            },
-            {
-              path: ['extractedText'],
-              operator: 'Like',
-              valueString: `*${query}*`
-            }
-          ]
+          operands: imageOperands
         })
         .withLimit(limit)
         .do();
@@ -235,24 +247,32 @@ class WeaviateService {
     await this.initialize();
 
     try {
+      // Split query into terms and create search operands for each term
+      const terms = query.toLowerCase().split(/\s+/).filter(term => term.length > 0);
+      const operands = [];
+      
+      terms.forEach(term => {
+        operands.push(
+          {
+            path: ['title'],
+            operator: 'Like',
+            valueString: `*${term}*`
+          },
+          {
+            path: ['content'],
+            operator: 'Like',
+            valueString: `*${term}*`
+          }
+        );
+      });
+
       const results = await this.client.graphql
         .get()
         .withClassName('Document')
         .withFields('title content filePath fileType metadata createdAt')
         .withWhere({
           operator: 'Or',
-          operands: [
-            {
-              path: ['title'],
-              operator: 'Like',
-              valueString: `*${query}*`
-            },
-            {
-              path: ['content'],
-              operator: 'Like',
-              valueString: `*${query}*`
-            }
-          ]
+          operands: operands
         })
         .withLimit(limit)
         .do();
@@ -268,24 +288,32 @@ class WeaviateService {
     await this.initialize();
 
     try {
+      // Split query into terms and create search operands for each term
+      const terms = query.toLowerCase().split(/\s+/).filter(term => term.length > 0);
+      const operands = [];
+      
+      terms.forEach(term => {
+        operands.push(
+          {
+            path: ['filename'],
+            operator: 'Like',
+            valueString: `*${term}*`
+          },
+          {
+            path: ['extractedText'],
+            operator: 'Like',
+            valueString: `*${term}*`
+          }
+        );
+      });
+
       const results = await this.client.graphql
         .get()
         .withClassName('Image')
         .withFields('filename extractedText filePath dimensions format metadata createdAt')
         .withWhere({
           operator: 'Or',
-          operands: [
-            {
-              path: ['filename'],
-              operator: 'Like',
-              valueString: `*${query}*`
-            },
-            {
-              path: ['extractedText'],
-              operator: 'Like',
-              valueString: `*${query}*`
-            }
-          ]
+          operands: operands
         })
         .withLimit(limit)
         .do();

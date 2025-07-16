@@ -4,7 +4,8 @@
       "Bash(mkdir:*)",
       "Bash(docker pull:*)",
       "Bash(docker-compose:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(docker exec:*)"
     ],
     "deny": []
   }
