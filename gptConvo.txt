@@ -1,0 +1,188 @@
+### Directory structure (Updated)
+
+```
+ai-bot-home-network/
+├── backend/
+│   ├── Dockerfile
+│   ├── package.json
+│   ├── app.js
+│   ├── indexer.js
+│   ├── retriever.js
+│   ├── ocr.js
+│   └── iphoto-indexer.js
+├── frontend/
+│   ├── Dockerfile
+│   ├── package.json
+│   ├── public/
+│   ├── src/
+│   │   ├── App.jsx
+│   │   ├── main.jsx
+│   │   └── ImageGallery.jsx
+│   └── vite.config.js
+├── docker-compose.yml
+└── README.md
+```
+
+### backend/package.json (add axios and sqlite3)
+
+```json
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "axios": "^1.6.0",
+    "express": "^4.18.2",
+    "langchain": "^0.0.180",
+    "sqlite3": "^5.1.6",
+    "multer": "^1.4.5"
+  }
+}
+```
+
+### backend/iphoto-indexer.js
+
+```javascript
+import fs from 'fs';
+import path from 'path';
+import sqlite3 from 'sqlite3';
+import { extractTextFromImage } from './ocr.js';
+import { Chroma } from 'langchain/vectorstores/chroma';
+
+const dbPath = '/Users/YOURUSER/Pictures/Photos Library.photoslibrary/database/photos.db';
+const db = new sqlite3.Database(dbPath);
+const chroma = new Chroma({ url: process.env.CHROMA_API, collectionName: 'photos' });
+
+export async function indexPhotos(azureEndpoint, azureApiKey) {
+  db.all("SELECT ZDIRECTORY || '/' || ZFILENAME AS path, ZCAPTION, ZTITLE FROM ZASSET", async (err, rows) => {
+    if (err) throw err;
+    for (const row of rows) {
+      const filePath = path.join('/Users/YOURUSER/Pictures/Photos Library.photoslibrary/originals/', row.path);
+      if (!fs.existsSync(filePath)) continue;
+      const imageBuffer = fs.readFileSync(filePath);
+      const ocrText = await extractTextFromImage(imageBuffer, azureEndpoint, azureApiKey);
+      await chroma.addDocuments([{ pageContent: ocrText, metadata: { path: filePath, caption: row.ZCAPTION, title: row.ZTITLE } }]);
+      console.log(`Indexed: ${filePath}`);
+    }
+  });
+}
+```
+
+### backend/app.js (add endpoint for search)
+
+```javascript
+import express from 'express';
+import multer from 'multer';
+import { extractTextFromImage } from './ocr.js';
+import { indexPhotos } from './iphoto-indexer.js';
+import { Ollama } from 'langchain/llms/ollama';
+import { Chroma } from 'langchain/vectorstores/chroma';
+
+const app = express();
+const upload = multer();
+app.use(express.json());
+
+const ollama = new Ollama({ baseUrl: process.env.OLLAMA_API, model: 'llama3' });
+const chroma = new Chroma({ url: process.env.CHROMA_API, collectionName: 'mydocs' });
+const chromaPhotos = new Chroma({ url: process.env.CHROMA_API, collectionName: 'photos' });
+
+app.post('/ocr', upload.single('file'), async (req, res) => {
+    const azureEndpoint = process.env.AZURE_ENDPOINT;
+    const azureApiKey = process.env.AZURE_API_KEY;
+    const text = await extractTextFromImage(req.file.buffer, azureEndpoint, azureApiKey);
+    res.json({ text });
+});
+
+app.post('/chat', async (req, res) => {
+    const { question } = req.body;
+    const retriever = chroma.asRetriever();
+    const docs = await retriever.getRelevantDocuments(question);
+    const context = docs.map(d => d.pageContent).join('\n');
+    const response = await ollama.call(`${context}\n\nQuestion: ${question}`);
+    res.json({ answer: response });
+});
+
+app.get('/photos/search', async (req, res) => {
+    const { q } = req.query;
+    const retriever = chromaPhotos.asRetriever();
+    const docs = await retriever.getRelevantDocuments(q);
+    const results = docs.map(d => d.metadata.path);
+    res.json({ results });
+});
+
+app.listen(5000, async () => {
+    console.log('Backend API running on 5000');
+    const azureEndpoint = process.env.AZURE_ENDPOINT;
+    const azureApiKey = process.env.AZURE_API_KEY;
+    await indexPhotos(azureEndpoint, azureApiKey);
+});
+```
+
+### frontend/src/ImageGallery.jsx
+
+```javascript
+import { useEffect, useState } from 'react';
+
+export default function ImageGallery() {
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState([]);
+
+  const searchPhotos = async () => {
+    const res = await fetch(`http://localhost:5000/photos/search?q=${encodeURIComponent(query)}`);
+    const data = await res.json();
+    setResults(data.results);
+  };
+
+  return (
+    <div>
+      <h2>Search iPhotos Library</h2>
+      <input value={query} onChange={e => setQuery(e.target.value)} />
+      <button onClick={searchPhotos}>Search</button>
+      <ul>
+        {results.map((path, idx) => <li key={idx}>{path}</li>)}
+      </ul>
+    </div>
+  );
+}
+```
+
+### frontend/src/App.jsx (include ImageGallery)
+
+```javascript
+import { useState } from 'react';
+import ImageGallery from './ImageGallery';
+
+function App() {
+  const [question, setQuestion] = useState('');
+  const [answer, setAnswer] = useState('');
+
+  const askQuestion = async () => {
+    const res = await fetch('http://localhost:5000/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question })
+    });
+    const data = await res.json();
+    setAnswer(data.answer);
+  };
+
+  return (
+    <div style={{ padding: 20 }}>
+      <h1>Local AI Chatbot</h1>
+      <textarea value={question} onChange={e => setQuestion(e.target.value)} />
+      <button onClick={askQuestion}>Ask</button>
+      <pre>{answer}</pre>
+      <ImageGallery />
+    </div>
+  );
+}
+
+export default App;
+```
+
+---
+
+This extends your project to:
+1. Index iPhotos with OCR and store in Chroma.
+2. Provide a `/photos/search` endpoint.
+3. Add a simple React component to search and display results.
