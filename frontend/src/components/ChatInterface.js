@@ -74,9 +74,9 @@ const ChatInterface = () => {
       const botMessage = {
         id: Date.now() + 1,
         type: 'bot',
-        content: response.response || 'I received your message but couldn\'t generate a response.',
+        content: response.response?.response || response.response || 'I received your message but couldn\'t generate a response.',
         timestamp: new Date(),
-        metadata: response.metadata,
+        metadata: response.response?.metadata || response.metadata,
       };
 
       setMessages(prev => [...prev, botMessage]);

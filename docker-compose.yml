@@ -32,14 +32,15 @@ services:
     networks:
       - home-ai-network
 
-  transformers:
-    image: semitechnologies/transformers-inference:sentence-transformers-all-MiniLM-L6-v2
-    container_name: transformers
-    restart: unless-stopped
-    environment:
-      ENABLE_CUDA: 0
-    networks:
-      - home-ai-network
+# Temporarily commented out transformers service to speed up startup
+  # transformers:
+  #   image: semitechnologies/transformers-inference:sentence-transformers-all-MiniLM-L6-v2
+  #   container_name: transformers
+  #   restart: unless-stopped
+  #   environment:
+  #     ENABLE_CUDA: 0
+  #   networks:
+  #     - home-ai-network
 
   home-ai-app:
     build:

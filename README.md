@@ -9,6 +9,8 @@ A comprehensive AI system for training on local documents using Ollama, Weaviate
 - **Vector Search**: Weaviate for semantic search across your document collection
 - **Image Scanning**: Automatic scanning of directories and iPhoto library
 - **Custom Training**: Create custom Ollama models trained on your documents
+- **React Frontend**: Modern web interface with chat, document management, and system monitoring
+- **AI Chat Interface**: Interactive chat with your documents using multiple AI models
 - **Docker Deployment**: Easy deployment with docker-compose
 
 ## Prerequisites
@@ -95,9 +97,10 @@ The system works **without Azure** for:
    ```
 
 4. **Access the Application**
-   - API: http://localhost:3000
-   - Weaviate: http://localhost:8080
-   - Ollama: http://localhost:11434
+   - **Web Interface**: http://localhost (React frontend)
+   - **API**: http://localhost:3000 (Backend API)
+   - **Weaviate**: http://localhost:8080 (Vector database)
+   - **Ollama**: http://localhost:11434 (AI models)
 
 ## API Endpoints
 
@@ -111,38 +114,75 @@ The system works **without Azure** for:
 
 ### Document Management
 - `POST /api/ingest/document` - Ingest a single document
+- `POST /api/upload/files` - Upload multiple files for processing
 - `POST /api/scan/images` - Scan and process all images
 - `GET /api/status` - Check service status
 
 ### Model Management
 - Available through Ollama service at port 11434
 
+## Web Interface
+
+The React frontend provides a modern web interface with the following pages:
+
+### 🗨️ Chat Interface
+- Interactive chat with your AI assistant
+- Real-time responses using your document knowledge base
+- Support for multiple AI models (Llama 3.2, Gemma2)
+- Markdown rendering with syntax highlighting
+- Message history with timestamps and token counts
+
+### 📄 Document Manager
+- Drag & drop file upload
+- Support for PDF, TXT, MD, and image files
+- Automatic OCR processing for images and PDFs
+- Batch processing with progress indicators
+- Local directory and iPhoto library scanning
+
+### 📊 Status Dashboard
+- Real-time system health monitoring
+- AI model availability and status
+- Database connection health
+- Service uptime and performance metrics
+
 ## Directory Structure
 
 ```
 home-network-ai/
-├── src/
+├── src/                      # Backend Node.js application
 │   ├── services/
 │   │   ├── ollama.js          # Ollama integration and training
 │   │   ├── weaviate.js        # Vector database operations
 │   │   ├── ocr.js             # Azure Computer Vision OCR
 │   │   ├── image.js           # Image scanning and processing
 │   │   └── document.js        # Document ingestion pipeline
-│   └── index.js               # Main application
-├── documents/                 # Place your documents here
+│   └── index.js               # Main Express server
+├── frontend/                 # React frontend application
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── ChatInterface.js      # Chat UI component
+│   │   │   ├── DocumentManager.js    # Document upload UI
+│   │   │   └── StatusDashboard.js    # System status UI
+│   │   ├── services/
+│   │   │   └── api.js         # API client for backend
+│   │   └── App.js             # Main React app
+│   ├── Dockerfile            # Frontend Docker build
+│   └── package.json          # Frontend dependencies
+├── documents/                # Place your documents here
 ├── images/                   # Place your images here
-├── docker-compose.yml
-├── Dockerfile
-└── package.json
+├── docker-compose.yml        # Multi-service orchestration
+├── Dockerfile               # Backend Docker build
+└── package.json             # Backend dependencies
 ```
 
 ## Usage
 
 ### Adding Documents
 
-1. **Manual Upload**: Place documents in the `documents/` directory
-2. **Automatic Scanning**: The system scans every 6 hours automatically
-3. **API Upload**: Use the `/api/ingest/document` endpoint
+1. **Web Interface**: Use the Document Manager page to drag & drop files
+2. **Manual Upload**: Place documents in the `documents/` directory
+3. **API Upload**: Use the `/api/ingest/document` or `/api/upload/files` endpoints
+4. **Automatic Scanning**: Use the "Start Scan" button to process local directories
 
 ### Training Custom Models
 
