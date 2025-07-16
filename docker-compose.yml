@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_ORIGINS=*
+    networks:
+      - home-ai-network
+
+  weaviate:
+    image: semitechnologies/weaviate:1.22.4
+    container_name: weaviate
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      QUERY_DEFAULTS_LIMIT: 25
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
+      PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+      DEFAULT_VECTORIZER_MODULE: 'text2vec-transformers'
+      ENABLE_MODULES: 'text2vec-transformers'
+      CLUSTER_HOSTNAME: 'node1'
+    volumes:
+      - weaviate_data:/var/lib/weaviate
+    networks:
+      - home-ai-network
+
+  transformers:
+    image: semitechnologies/transformers-inference:sentence-transformers-all-MiniLM-L6-v2
+    container_name: transformers
+    restart: unless-stopped
+    environment:
+      ENABLE_CUDA: 0
+    networks:
+      - home-ai-network
+
+  home-ai-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: home-ai-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - WEAVIATE_URL=http://weaviate:8080
+      - AZURE_COMPUTER_VISION_ENDPOINT=${AZURE_COMPUTER_VISION_ENDPOINT}
+      - AZURE_COMPUTER_VISION_KEY=${AZURE_COMPUTER_VISION_KEY}
+    volumes:
+      - ./documents:/app/documents
+      - ./images:/app/images
+      - ~/Pictures:/app/pictures:ro
+    depends_on:
+      - ollama
+      - weaviate
+      - transformers
+    networks:
+      - home-ai-network
+
+volumes:
+  ollama_data:
+  weaviate_data:
+
+networks:
+  home-ai-network:
+    driver: bridge
