@@ -23,6 +23,90 @@ ai-bot-home-network/
 └── README.md
 ```
 
+### frontend/Dockerfile
+
+```Dockerfile
+FROM node:20
+WORKDIR /app
+COPY package.json .
+RUN npm install
+COPY . .
+RUN npm run build
+CMD ["npm", "run", "preview"]
+```
+
+### frontend/package.json
+
+```json
+{
+  "name": "frontend",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "vite": "^4.0.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  }
+}
+```
+
+### frontend/vite.config.js
+
+```javascript
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+
+export default defineConfig({
+  plugins: [react()],
+  server: { host: true }
+});
+```
+
+### docker-compose.yml
+
+```yaml
+version: '3.8'
+services:
+  ollama:
+    image: ollama/ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ./ollama:/root/.ollama
+
+  chromadb:
+    image: chromadb/chroma
+    ports:
+      - "8000:8000"
+
+  backend:
+    build: ./backend
+    ports:
+      - "5000:5000"
+    environment:
+      - OLLAMA_API=http://ollama:11434
+      - CHROMA_API=http://chromadb:8000
+      - AZURE_ENDPOINT=https://YOUR_AZURE_ENDPOINT.cognitiveservices.azure.com
+      - AZURE_API_KEY=YOUR_AZURE_API_KEY
+    depends_on:
+      - ollama
+      - chromadb
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+```
+
 ### backend/package.json (add axios and sqlite3)
 
 ```json
@@ -179,10 +263,3 @@ function App() {
 
 export default App;
 ```
-
----
-
-This extends your project to:
-1. Index iPhotos with OCR and store in Chroma.
-2. Provide a `/photos/search` endpoint.
-3. Add a simple React component to search and display results.
