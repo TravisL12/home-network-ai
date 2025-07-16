@@ -24,8 +24,8 @@ services:
       QUERY_DEFAULTS_LIMIT: 25
       AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
       PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
-      DEFAULT_VECTORIZER_MODULE: 'text2vec-transformers'
-      ENABLE_MODULES: 'text2vec-transformers'
+      DEFAULT_VECTORIZER_MODULE: 'none'
+      ENABLE_MODULES: ''
       CLUSTER_HOSTNAME: 'node1'
     volumes:
       - weaviate_data:/var/lib/weaviate
@@ -62,7 +62,19 @@ services:
     depends_on:
       - ollama
       - weaviate
-      - transformers
+    networks:
+      - home-ai-network
+
+  home-ai-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: home-ai-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - home-ai-app
     networks:
       - home-ai-network
 

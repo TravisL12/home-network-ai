@@ -2,7 +2,7 @@ const weaviate = require('weaviate-ts-client');
 
 class WeaviateService {
   constructor() {
-    this.client = weaviate.client({
+    this.client = weaviate.default.client({
       scheme: 'http',
       host: process.env.WEAVIATE_URL ? process.env.WEAVIATE_URL.replace('http://', '') : 'localhost:8080',
     });
