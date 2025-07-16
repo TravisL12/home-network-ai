@@ -45,23 +45,53 @@ const DocumentManager = () => {
     setUploadStatus(null);
 
     try {
-      const uploadPromises = acceptedFiles.map(async (file) => {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('title', file.name);
-        
-        return await documentService.ingestDocument({
-          filePath: file.name,
-          title: file.name,
-          content: await file.text(),
-        });
-      });
+      // Use the new uploadFiles function for binary files
+      const binaryFiles = acceptedFiles.filter(file => 
+        !['.txt', '.md'].includes(file.name.toLowerCase().split('.').pop())
+      );
+      
+      // Use the ingestDocument function for text files
+      const textFiles = acceptedFiles.filter(file => 
+        ['.txt', '.md'].includes('.' + file.name.toLowerCase().split('.').pop())
+      );
 
-      const results = await Promise.all(uploadPromises);
+      const results = [];
+
+      // Handle binary files (PDFs, images)
+      if (binaryFiles.length > 0) {
+        const binaryResult = await documentService.uploadFiles(binaryFiles);
+        results.push(...binaryResult.results);
+      }
+
+      // Handle text files
+      for (const file of textFiles) {
+        try {
+          const content = await file.text();
+          const result = await documentService.ingestDocument({
+            filePath: file.name,
+            title: file.name,
+            content: content,
+            fileType: '.' + file.name.toLowerCase().split('.').pop(),
+          });
+          results.push({
+            filename: file.name,
+            success: true,
+            result: result,
+          });
+        } catch (error) {
+          results.push({
+            filename: file.name,
+            success: false,
+            error: error.message,
+          });
+        }
+      }
+      
+      const successCount = results.filter(r => r.success).length;
       
       setUploadStatus({
-        type: 'success',
-        message: `Successfully uploaded ${results.length} document(s)`,
+        type: successCount > 0 ? 'success' : 'error',
+        message: `Successfully uploaded ${successCount} of ${results.length} document(s)`,
         details: results,
       });
     } catch (error) {

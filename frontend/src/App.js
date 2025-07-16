@@ -49,7 +49,7 @@ const theme = createTheme({
 const drawerWidth = 240;
 
 const menuItems = [
-  { text: 'Chat', icon: <ChatIcon />, path: '/' },
+  { text: 'Chat', icon: <ChatIcon />, path: '/chat' },
   { text: 'Documents', icon: <DocumentIcon />, path: '/documents' },
   { text: 'Status', icon: <DashboardIcon />, path: '/status' },
 ];

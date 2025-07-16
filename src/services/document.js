@@ -219,13 +219,21 @@ class DocumentService {
   }
 
   async ingestDocument(documentData) {
-    const { filePath, title, content } = documentData;
+    const { filePath, title, content, fileType } = documentData;
     
     try {
       let processedContent = content;
       let extractedTitle = title;
+      let actualFilePath = filePath;
       
-      if (filePath && !content) {
+      // If content is provided, use it directly
+      if (content && content.trim().length > 0) {
+        processedContent = content;
+        extractedTitle = extractedTitle || filePath || 'Untitled Document';
+        actualFilePath = filePath || 'uploaded-content';
+      }
+      // If only filePath is provided, try to read from filesystem
+      else if (filePath && !content) {
         if (!await fs.pathExists(filePath)) {
           throw new Error(`File not found: ${filePath}`);
         }
@@ -245,6 +253,9 @@ class DocumentService {
           throw new Error(`Unsupported file type: ${ext}`);
         }
       }
+      else {
+        throw new Error('Either content or valid filePath must be provided');
+      }
 
       if (!processedContent || processedContent.trim().length === 0) {
         console.warn(`No content extracted from ${filePath}`);
@@ -254,10 +265,10 @@ class DocumentService {
       const documentRecord = {
         title: extractedTitle,
         content: processedContent,
-        filePath: filePath,
-        fileType: path.extname(filePath).toLowerCase(),
+        filePath: actualFilePath,
+        fileType: fileType || path.extname(actualFilePath || '').toLowerCase(),
         metadata: {
-          fileSize: filePath ? (await fs.stat(filePath)).size : 0,
+          fileSize: (actualFilePath && await fs.pathExists(actualFilePath)) ? (await fs.stat(actualFilePath)).size : processedContent.length,
           processedAt: new Date().toISOString(),
           source: 'document-service'
         }

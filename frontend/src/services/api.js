@@ -35,6 +35,25 @@ export const documentService = {
     }
   },
 
+  uploadFiles: async (files) => {
+    try {
+      const formData = new FormData();
+      files.forEach((file) => {
+        formData.append('files', file);
+      });
+
+      const response = await api.post('/api/upload/files', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data;
+    } catch (error) {
+      console.error('File upload error:', error);
+      throw error;
+    }
+  },
+
   scanImages: async () => {
     try {
       const response = await api.post('/api/scan/images');

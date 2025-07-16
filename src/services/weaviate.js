@@ -27,79 +27,37 @@ class WeaviateService {
     const documentSchema = {
       class: 'Document',
       description: 'A document with text content',
-      vectorizer: 'text2vec-transformers',
-      moduleConfig: {
-        'text2vec-transformers': {
-          poolingStrategy: 'masked_mean',
-          vectorizeClassName: false,
-        },
-      },
+      vectorizer: 'none',
       properties: [
         {
           name: 'title',
           dataType: ['string'],
           description: 'The title of the document',
-          moduleConfig: {
-            'text2vec-transformers': {
-              skip: false,
-              vectorizePropertyName: false,
-            },
-          },
         },
         {
           name: 'content',
           dataType: ['text'],
           description: 'The content of the document',
-          moduleConfig: {
-            'text2vec-transformers': {
-              skip: false,
-              vectorizePropertyName: false,
-            },
-          },
         },
         {
           name: 'filePath',
           dataType: ['string'],
           description: 'The file path of the document',
-          moduleConfig: {
-            'text2vec-transformers': {
-              skip: true,
-              vectorizePropertyName: false,
-            },
-          },
         },
         {
           name: 'fileType',
           dataType: ['string'],
           description: 'The type of the file',
-          moduleConfig: {
-            'text2vec-transformers': {
-              skip: true,
-              vectorizePropertyName: false,
-            },
-          },
         },
         {
           name: 'metadata',
-          dataType: ['object'],
-          description: 'Additional metadata about the document',
-          moduleConfig: {
-            'text2vec-transformers': {
-              skip: true,
-              vectorizePropertyName: false,
-            },
-          },
+          dataType: ['string'],
+          description: 'Additional metadata about the document (JSON string)',
         },
         {
           name: 'createdAt',
           dataType: ['date'],
           description: 'When the document was created',
-          moduleConfig: {
-            'text2vec-transformers': {
-              skip: true,
-              vectorizePropertyName: false,
-            },
-          },
         },
       ],
     };
@@ -107,90 +65,42 @@ class WeaviateService {
     const imageSchema = {
       class: 'Image',
       description: 'An image with extracted text and metadata',
-      vectorizer: 'text2vec-transformers',
-      moduleConfig: {
-        'text2vec-transformers': {
-          poolingStrategy: 'masked_mean',
-          vectorizeClassName: false,
-        },
-      },
+      vectorizer: 'none',
       properties: [
         {
           name: 'filename',
           dataType: ['string'],
           description: 'The filename of the image',
-          moduleConfig: {
-            'text2vec-transformers': {
-              skip: false,
-              vectorizePropertyName: false,
-            },
-          },
         },
         {
           name: 'extractedText',
           dataType: ['text'],
           description: 'Text extracted from the image via OCR',
-          moduleConfig: {
-            'text2vec-transformers': {
-              skip: false,
-              vectorizePropertyName: false,
-            },
-          },
         },
         {
           name: 'filePath',
           dataType: ['string'],
           description: 'The file path of the image',
-          moduleConfig: {
-            'text2vec-transformers': {
-              skip: true,
-              vectorizePropertyName: false,
-            },
-          },
         },
         {
           name: 'dimensions',
-          dataType: ['object'],
-          description: 'Image dimensions (width, height)',
-          moduleConfig: {
-            'text2vec-transformers': {
-              skip: true,
-              vectorizePropertyName: false,
-            },
-          },
+          dataType: ['string'],
+          description: 'Image dimensions (width, height) as JSON string',
         },
         {
           name: 'format',
           dataType: ['string'],
           description: 'Image format (jpg, png, etc.)',
-          moduleConfig: {
-            'text2vec-transformers': {
-              skip: true,
-              vectorizePropertyName: false,
-            },
-          },
         },
         {
           name: 'metadata',
-          dataType: ['object'],
-          description: 'Additional metadata about the image',
-          moduleConfig: {
-            'text2vec-transformers': {
-              skip: true,
-              vectorizePropertyName: false,
-            },
-          },
+          dataType: ['string'],
+          description: 'Additional metadata about the image (JSON string)',
         },
         {
           name: 'createdAt',
           dataType: ['date'],
           description: 'When the image was processed',
-          moduleConfig: {
-            'text2vec-transformers': {
-              skip: true,
-              vectorizePropertyName: false,
-            },
-          },
         },
       ],
     };
@@ -226,7 +136,7 @@ class WeaviateService {
           content: documentData.content,
           filePath: documentData.filePath,
           fileType: documentData.fileType,
-          metadata: documentData.metadata || {},
+          metadata: JSON.stringify(documentData.metadata || {}),
           createdAt: new Date().toISOString(),
         })
         .do();
@@ -249,9 +159,9 @@ class WeaviateService {
           filename: imageData.filename,
           extractedText: imageData.extractedText || '',
           filePath: imageData.filePath,
-          dimensions: imageData.dimensions || {},
+          dimensions: JSON.stringify(imageData.dimensions || {}),
           format: imageData.format,
-          metadata: imageData.metadata || {},
+          metadata: JSON.stringify(imageData.metadata || {}),
           createdAt: new Date().toISOString(),
         })
         .do();
@@ -271,7 +181,21 @@ class WeaviateService {
         .get()
         .withClassName('Document')
         .withFields('title content filePath fileType metadata createdAt')
-        .withNearText({ concepts: [query] })
+        .withWhere({
+          operator: 'Or',
+          operands: [
+            {
+              path: ['title'],
+              operator: 'Like',
+              valueString: `*${query}*`
+            },
+            {
+              path: ['content'],
+              operator: 'Like',
+              valueString: `*${query}*`
+            }
+          ]
+        })
         .withLimit(limit)
         .do();
 
@@ -279,7 +203,21 @@ class WeaviateService {
         .get()
         .withClassName('Image')
         .withFields('filename extractedText filePath dimensions format metadata createdAt')
-        .withNearText({ concepts: [query] })
+        .withWhere({
+          operator: 'Or',
+          operands: [
+            {
+              path: ['filename'],
+              operator: 'Like',
+              valueString: `*${query}*`
+            },
+            {
+              path: ['extractedText'],
+              operator: 'Like',
+              valueString: `*${query}*`
+            }
+          ]
+        })
         .withLimit(limit)
         .do();
 
@@ -301,7 +239,21 @@ class WeaviateService {
         .get()
         .withClassName('Document')
         .withFields('title content filePath fileType metadata createdAt')
-        .withNearText({ concepts: [query] })
+        .withWhere({
+          operator: 'Or',
+          operands: [
+            {
+              path: ['title'],
+              operator: 'Like',
+              valueString: `*${query}*`
+            },
+            {
+              path: ['content'],
+              operator: 'Like',
+              valueString: `*${query}*`
+            }
+          ]
+        })
         .withLimit(limit)
         .do();
 
@@ -320,7 +272,21 @@ class WeaviateService {
         .get()
         .withClassName('Image')
         .withFields('filename extractedText filePath dimensions format metadata createdAt')
-        .withNearText({ concepts: [query] })
+        .withWhere({
+          operator: 'Or',
+          operands: [
+            {
+              path: ['filename'],
+              operator: 'Like',
+              valueString: `*${query}*`
+            },
+            {
+              path: ['extractedText'],
+              operator: 'Like',
+              valueString: `*${query}*`
+            }
+          ]
+        })
         .withLimit(limit)
         .do();
 
