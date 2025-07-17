@@ -1,34 +1,42 @@
-const fs = require('fs-extra');
-const path = require('path');
-const glob = require('glob');
-const cron = require('node-cron');
-const ocrService = require('./ocr');
-const weaviateService = require('./weaviate');
-const imageService = require('./image');
+const fs = require("fs-extra");
+const path = require("path");
+const glob = require("glob");
+const cron = require("node-cron");
+const ocrService = require("./ocr");
+const weaviateService = require("./weaviate");
+const imageService = require("./image");
 
 class DocumentService {
   constructor() {
-    this.supportedDocuments = ['.pdf', '.txt', '.md', '.doc', '.docx'];
-    this.supportedImages = ['.jpg', '.jpeg', '.png', '.bmp', '.gif', '.tiff', '.webp'];
+    this.supportedDocuments = [".pdf", ".txt", ".md", ".doc", ".docx"];
+    this.supportedImages = [
+      ".jpg",
+      ".jpeg",
+      ".png",
+      ".bmp",
+      ".gif",
+      ".tiff",
+      ".webp",
+    ];
     this.watchedDirectories = [
-      '/app/documents', 
-      '/app/images',
+      "/app/documents",
+      "/app/images",
       // Development paths
-      path.join(process.cwd(), 'documents'),
-      path.join(process.cwd(), 'images')
+      path.join(process.cwd(), "documents"),
+      path.join(process.cwd(), "images"),
     ];
     this.processedFiles = new Set();
     this.isProcessing = false;
   }
 
   async initialize() {
-    console.log('Initializing document service...');
-    
+    console.log("Initializing document service...");
+
     await this.createDirectories();
     await this.loadProcessedFiles();
     await this.scheduleAutomaticScanning();
-    
-    console.log('Document service initialized');
+
+    console.log("Document service initialized");
   }
 
   async createDirectories() {
@@ -42,63 +50,65 @@ class DocumentService {
     try {
       const documents = await weaviateService.getAllDocuments();
       const images = await weaviateService.getAllImages();
-      
-      documents.forEach(doc => {
+
+      documents.forEach((doc) => {
         if (doc.filePath) {
           this.processedFiles.add(doc.filePath);
         }
       });
-      
-      images.forEach(img => {
+
+      images.forEach((img) => {
         if (img.filePath) {
           this.processedFiles.add(img.filePath);
         }
       });
-      
-      console.log(`Loaded ${this.processedFiles.size} previously processed files`);
+
+      console.log(
+        `Loaded ${this.processedFiles.size} previously processed files`
+      );
     } catch (error) {
-      console.error('Error loading processed files:', error);
+      console.error("Error loading processed files:", error);
     }
   }
 
   async scheduleAutomaticScanning() {
-    cron.schedule('0 */6 * * *', async () => {
-      console.log('Starting scheduled document scan...');
+    cron.schedule("0 */6 * * *", async () => {
+      console.log("Starting scheduled document scan...");
       await this.scanAndIngestAll();
     });
-    
-    console.log('Scheduled automatic scanning every 6 hours');
+
+    console.log("Scheduled automatic scanning every 6 hours");
   }
 
   async scanAndIngestAll() {
     if (this.isProcessing) {
-      console.log('Already processing documents, skipping...');
+      console.log("Already processing documents, skipping...");
       return;
     }
 
     this.isProcessing = true;
-    
+
     try {
-      console.log('Starting comprehensive document and image scan...');
-      
+      console.log("Starting comprehensive document and image scan...");
+
       const results = {
         documents: await this.scanDocuments(),
         images: await this.scanImages(),
         startTime: new Date().toISOString(),
-        endTime: null
+        endTime: null,
       };
-      
+
       results.endTime = new Date().toISOString();
-      
-      console.log('Scan completed:', {
+
+      console.log("Scan completed:", {
         documentsProcessed: results.documents.processed,
         imagesProcessed: results.images.processed,
-        duration: new Date(results.endTime) - new Date(results.startTime)
+        duration: new Date(results.endTime) - new Date(results.startTime),
       });
-      
+
       return results;
     } catch (error) {
-      console.error('Error during scan and ingest:', error);
+      console.error("Error during scan and ingest:", error);
       throw error;
     } finally {
       this.isProcessing = false;
@@ -110,17 +120,20 @@ class DocumentService {
       scanned: 0,
       processed: 0,
       errors: [],
-      newFiles: []
+      newFiles: [],
     };
 
     for (const directory of this.watchedDirectories) {
       try {
         if (await fs.pathExists(directory)) {
-          const files = await this.getFilesInDirectory(directory, this.supportedDocuments);
-          
+          const files = await this.getFilesInDirectory(
+            directory,
+            this.supportedDocuments
+          );
+
           for (const filePath of files) {
             results.scanned++;
-            
+
             try {
               if (!this.processedFiles.has(filePath)) {
                 await this.ingestDocument({ filePath });
@@ -132,7 +145,7 @@ class DocumentService {
               console.error(`Error processing document ${filePath}:`, error);
               results.errors.push({
                 file: filePath,
-                error: error.message
+                error: error.message,
               });
             }
           }
@@ -141,7 +154,7 @@ class DocumentService {
         console.error(`Error scanning directory ${directory}:`, error);
         results.errors.push({
           directory,
-          error: error.message
+          error: error.message,
         });
       }
     }
@@ -154,16 +167,16 @@ class DocumentService {
       scanned: 0,
       processed: 0,
       errors: [],
-      newFiles: []
+      newFiles: [],
     };
 
     try {
       const imageResults = await imageService.scanImages();
-      
+
       for (const dirScan of imageResults.directoryScans) {
         for (const image of dirScan.images) {
           results.scanned++;
-          
+
           try {
             if (!this.processedFiles.has(image.path)) {
               await this.ingestImage(image);
@@ -175,7 +188,7 @@ class DocumentService {
             console.error(`Error processing image ${image.path}:`, error);
             results.errors.push({
               file: image.path,
-              error: error.message
+              error: error.message,
             });
           }
         }
@@ -185,7 +198,7 @@ class DocumentService {
         for (const album of imageResults.iPhotoScan.albums) {
           for (const image of album.images) {
             results.scanned++;
-            
+
             try {
               if (!this.processedFiles.has(image.path)) {
                 await this.ingestImage(image);
@@ -194,20 +207,22 @@ class DocumentService {
                 this.processedFiles.add(image.path);
               }
             } catch (error) {
-              console.error(`Error processing iPhoto image ${image.path}:`, error);
+              console.error(
+                `Error processing iPhoto image ${image.path}:`,
+                error
+              );
               results.errors.push({
                 file: image.path,
-                error: error.message
+                error: error.message,
               });
             }
           }
         }
       }
-
     } catch (error) {
-      console.error('Error scanning images:', error);
+      console.error("Error scanning images:", error);
       results.errors.push({
-        error: error.message
+        error: error.message,
       });
     }
 
@@ -215,10 +230,10 @@ class DocumentService {
   }
 
   async getFilesInDirectory(directory, extensions) {
-    const pattern = path.join(directory, '**/*');
+    const pattern = path.join(directory, "**/*");
     const files = glob.sync(pattern);
-    
-    return files.filter(file => {
+
+    return files.filter((file) => {
       const ext = path.extname(file).toLowerCase();
       return extensions.includes(ext) && fs.statSync(file).isFile();
     });
@@ -226,67 +241,68 @@ class DocumentService {
 
   async ingestDocument(documentData) {
     const { filePath, title, content, fileType } = documentData;
-    
+
     try {
       let processedContent = content;
       let extractedTitle = title;
       let actualFilePath = filePath;
-      
+
       // If content is provided, use it directly
       if (content && content.trim().length > 0) {
         processedContent = content;
-        extractedTitle = extractedTitle || filePath || 'Untitled Document';
-        actualFilePath = filePath || 'uploaded-content';
+        extractedTitle = extractedTitle || filePath || "Untitled Document";
+        actualFilePath = filePath || "uploaded-content";
       }
       // If only filePath is provided, try to read from filesystem
       else if (filePath && !content) {
-        if (!await fs.pathExists(filePath)) {
+        if (!(await fs.pathExists(filePath))) {
           throw new Error(`File not found: ${filePath}`);
         }
 
         const ext = path.extname(filePath).toLowerCase();
         extractedTitle = extractedTitle || path.basename(filePath, ext);
-        
-        if (ext === '.pdf') {
+
+        if (ext === ".pdf") {
           const ocrResult = await ocrService.extractTextFromPDF(filePath);
           processedContent = ocrResult.text;
         } else if (this.supportedImages.includes(ext)) {
           const ocrResult = await ocrService.extractTextFromImage(filePath);
           processedContent = ocrResult.text;
-        } else if (['.txt', '.md'].includes(ext)) {
-          processedContent = await fs.readFile(filePath, 'utf8');
+        } else if ([".txt", ".md"].includes(ext)) {
+          processedContent = await fs.readFile(filePath, "utf8");
         } else {
           throw new Error(`Unsupported file type: ${ext}`);
         }
-      }
-      else {
-        throw new Error('Either content or valid filePath must be provided');
+      } else {
+        throw new Error("Either content or valid filePath must be provided");
       }
 
       if (!processedContent || processedContent.trim().length === 0) {
         console.warn(`No content extracted from ${filePath}`);
-        return { success: false, reason: 'No content extracted' };
+        return { success: false, reason: "No content extracted" };
       }
 
       const documentRecord = {
         title: extractedTitle,
         content: processedContent,
         filePath: actualFilePath,
-        fileType: fileType || path.extname(actualFilePath || '').toLowerCase(),
+        fileType: fileType || path.extname(actualFilePath || "").toLowerCase(),
         metadata: {
-          fileSize: (actualFilePath && await fs.pathExists(actualFilePath)) ? (await fs.stat(actualFilePath)).size : processedContent.length,
+          fileSize:
+            actualFilePath && (await fs.pathExists(actualFilePath))
+              ? (await fs.stat(actualFilePath)).size
+              : processedContent.length,
           processedAt: new Date().toISOString(),
-          source: 'document-service'
-        }
+          source: "document-service",
+        },
       };
 
       const result = await weaviateService.addDocument(documentRecord);
-      
+
       console.log(`Successfully ingested document: ${extractedTitle}`);
-      return { success: true, id: result.id };
-      
+      return { success: true, id: result.id, processedContent };
     } catch (error) {
-      console.error('Error ingesting document:', error);
+      console.error("Error ingesting document:", error);
       throw error;
     }
   }
@@ -295,7 +311,7 @@ class DocumentService {
     try {
       const imageRecord = {
         filename: imageData.filename,
-        extractedText: imageData.extractedText || '',
+        extractedText: imageData.extractedText || "",
         filePath: imageData.path,
         dimensions: imageData.dimensions,
         format: imageData.format,
@@ -303,17 +319,16 @@ class DocumentService {
           ...imageData.metadata,
           fileSize: imageData.size || 0,
           processedAt: new Date().toISOString(),
-          source: 'document-service'
-        }
+          source: "document-service",
+        },
       };
 
       const result = await weaviateService.addImage(imageRecord);
-      
+
       console.log(`Successfully ingested image: ${imageData.filename}`);
       return { success: true, id: result.id };
-      
     } catch (error) {
-      console.error('Error ingesting image:', error);
+      console.error("Error ingesting image:", error);
       throw error;
     }
   }
@@ -323,7 +338,7 @@ class DocumentService {
       const results = await weaviateService.search(query, limit);
       return results;
     } catch (error) {
-      console.error('Error searching documents:', error);
+      console.error("Error searching documents:", error);
       throw error;
     }
   }
@@ -332,16 +347,16 @@ class DocumentService {
     try {
       const documents = await weaviateService.getAllDocuments();
       const images = await weaviateService.getAllImages();
-      
+
       return {
         totalDocuments: documents.length,
         totalImages: images.length,
         processedFiles: this.processedFiles.size,
         isProcessing: this.isProcessing,
-        lastScanTime: new Date().toISOString()
+        lastScanTime: new Date().toISOString(),
       };
     } catch (error) {
-      console.error('Error getting stats:', error);
+      console.error("Error getting stats:", error);
       throw error;
     }
   }
