@@ -16,6 +16,11 @@ import {
   Divider,
   IconButton,
   Tooltip,
+  Button,
+  Collapse,
+  Pagination,
+  TextField,
+  InputAdornment,
 } from '@mui/material';
 import {
   CheckCircle as CheckCircleIcon,
@@ -28,6 +33,9 @@ import {
   Image as ImageIcon,
   Speed as SpeedIcon,
   Memory as MemoryIcon,
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon,
+  Search as SearchIcon,
 } from '@mui/icons-material';
 import { statusService } from '../services/api';
 
@@ -36,6 +44,10 @@ const StatusDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [showAllDocuments, setShowAllDocuments] = useState(false);
+  const [documentPage, setDocumentPage] = useState(1);
+  const [documentSearch, setDocumentSearch] = useState('');
+  const documentsPerPage = 10;
 
   const fetchStatus = async () => {
     try {
@@ -335,23 +347,107 @@ const StatusDashboard = () => {
                     </List>
                   </Grid>
                   
-                  <Grid item xs={12} md={6}>
-                    <Typography variant="subtitle2" gutterBottom>
-                      Recent Documents:
-                    </Typography>
+                  <Grid item xs={12}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                      <Typography variant="subtitle2">
+                        {showAllDocuments ? 'All Documents:' : 'Recent Documents:'}
+                      </Typography>
+                      {status.documents.allDocuments && status.documents.allDocuments.length > 5 && (
+                        <Button
+                          size="small"
+                          onClick={() => setShowAllDocuments(!showAllDocuments)}
+                          endIcon={showAllDocuments ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                        >
+                          {showAllDocuments ? 'Show Less' : `Show All (${status.documents.allDocuments.length})`}
+                        </Button>
+                      )}
+                    </Box>
+                    
+                    {showAllDocuments && status.documents.allDocuments && status.documents.allDocuments.length > 0 && (
+                      <Box sx={{ mb: 2 }}>
+                        <TextField
+                          size="small"
+                          placeholder="Search documents..."
+                          value={documentSearch}
+                          onChange={(e) => {
+                            setDocumentSearch(e.target.value);
+                            setDocumentPage(1);
+                          }}
+                          InputProps={{
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                <SearchIcon />
+                              </InputAdornment>
+                            ),
+                          }}
+                          fullWidth
+                        />
+                      </Box>
+                    )}
+                    
                     {status.documents.recentDocuments && status.documents.recentDocuments.length > 0 ? (
-                      <List dense>
-                        {status.documents.recentDocuments.map((doc, index) => (
-                          <ListItem key={index} sx={{ py: 0.5 }}>
-                            <ListItemText
-                              primary={doc.title}
-                              secondary={`${doc.fileType} • ${new Date(doc.createdAt).toLocaleDateString()}`}
-                              primaryTypographyProps={{ variant: 'body2' }}
-                              secondaryTypographyProps={{ variant: 'caption' }}
-                            />
-                          </ListItem>
-                        ))}
-                      </List>
+                      <>
+                        <List dense>
+                          {showAllDocuments ? (
+                            (() => {
+                              const filteredDocs = status.documents.allDocuments.filter(doc => 
+                                doc.title.toLowerCase().includes(documentSearch.toLowerCase())
+                              );
+                              const startIndex = (documentPage - 1) * documentsPerPage;
+                              const endIndex = startIndex + documentsPerPage;
+                              const paginatedDocs = filteredDocs.slice(startIndex, endIndex);
+                              const totalPages = Math.ceil(filteredDocs.length / documentsPerPage);
+                              
+                              return (
+                                <>
+                                  {paginatedDocs.map((doc, index) => (
+                                    <ListItem key={doc.id || index} sx={{ py: 0.5 }}>
+                                      <ListItemIcon>
+                                        <DocumentIcon fontSize="small" />
+                                      </ListItemIcon>
+                                      <ListItemText
+                                        primary={doc.title}
+                                        secondary={`${doc.fileType} • ${new Date(doc.createdAt).toLocaleDateString()}`}
+                                        primaryTypographyProps={{ variant: 'body2' }}
+                                        secondaryTypographyProps={{ variant: 'caption' }}
+                                      />
+                                    </ListItem>
+                                  ))}
+                                  {totalPages > 1 && (
+                                    <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+                                      <Pagination
+                                        count={totalPages}
+                                        page={documentPage}
+                                        onChange={(event, value) => setDocumentPage(value)}
+                                        size="small"
+                                      />
+                                    </Box>
+                                  )}
+                                  <Box sx={{ mt: 1 }}>
+                                    <Typography variant="caption" color="text.secondary">
+                                      Showing {paginatedDocs.length} of {filteredDocs.length} documents
+                                    </Typography>
+                                  </Box>
+                                </>
+                              );
+                            })()
+                          ) : (
+                            status.documents.recentDocuments.map((doc, index) => (
+                              <ListItem key={index} sx={{ py: 0.5 }}>
+                                <ListItemIcon>
+                                  <DocumentIcon fontSize="small" />
+                                </ListItemIcon>
+                                <ListItemText
+                                  primary={doc.title}
+                                  secondary={`${doc.fileType} • ${new Date(doc.createdAt).toLocaleDateString()}`}
+                                  primaryTypographyProps={{ variant: 'body2' }}
+                                  secondaryTypographyProps={{ variant: 'caption' }}
+                                />
+                              </ListItem>
+                            ))
+                          )}
+                        </List>
+                      </>
                     ) : (
                       <Typography variant="body2" color="text.secondary">
                         No documents found. Upload documents to start querying them.

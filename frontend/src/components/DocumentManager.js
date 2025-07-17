@@ -39,10 +39,13 @@ const DocumentManager = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [scanResults, setScanResults] = useState(null);
+  const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0, currentFile: '' });
+  const [processingStage, setProcessingStage] = useState('');
 
   const onDrop = async (acceptedFiles) => {
     setIsUploading(true);
     setUploadStatus(null);
+    setUploadProgress({ current: 0, total: acceptedFiles.length, currentFile: '' });
 
     try {
       // Use the new uploadFiles function for binary files
@@ -58,15 +61,37 @@ const DocumentManager = () => {
       });
 
       const results = [];
+      let currentFileIndex = 0;
 
       // Handle binary files (PDFs, images)
       if (binaryFiles.length > 0) {
-        const binaryResult = await documentService.uploadFiles(binaryFiles);
-        results.push(...binaryResult.results);
+        setProcessingStage('Processing binary files (PDFs, images)...');
+        
+        // Process binary files one by one for better progress tracking
+        for (const file of binaryFiles) {
+          currentFileIndex++;
+          setUploadProgress({ current: currentFileIndex, total: acceptedFiles.length, currentFile: file.name });
+          setProcessingStage(`Processing ${file.name}...`);
+          
+          try {
+            const singleFileResult = await documentService.uploadFiles([file]);
+            results.push(...singleFileResult.results);
+          } catch (error) {
+            results.push({
+              filename: file.name,
+              success: false,
+              error: error.message,
+            });
+          }
+        }
       }
 
       // Handle text files
       for (const file of textFiles) {
+        currentFileIndex++;
+        setUploadProgress({ current: currentFileIndex, total: acceptedFiles.length, currentFile: file.name });
+        setProcessingStage(`Processing ${file.name}...`);
+        
         try {
           const content = await file.text();
           const result = await documentService.ingestDocument({
@@ -89,6 +114,8 @@ const DocumentManager = () => {
         }
       }
       
+      setProcessingStage('Finalizing document indexing...');
+      
       const successCount = results.filter(r => r.success).length;
       
       setUploadStatus({
@@ -105,6 +132,8 @@ const DocumentManager = () => {
       });
     } finally {
       setIsUploading(false);
+      setUploadProgress({ current: 0, total: 0, currentFile: '' });
+      setProcessingStage('');
     }
   };
 
@@ -336,10 +365,27 @@ const DocumentManager = () => {
 
             {isUploading && (
               <Box sx={{ mt: 2 }}>
-                <LinearProgress />
+                <LinearProgress 
+                  variant={uploadProgress.total > 0 ? 'determinate' : 'indeterminate'}
+                  value={uploadProgress.total > 0 ? (uploadProgress.current / uploadProgress.total) * 100 : 0}
+                />
                 <Typography variant="body2" sx={{ mt: 1 }}>
-                  Uploading documents...
+                  {uploadProgress.total > 0 ? (
+                    `Processing ${uploadProgress.current} of ${uploadProgress.total} files`
+                  ) : (
+                    'Uploading documents...'
+                  )}
                 </Typography>
+                {uploadProgress.currentFile && (
+                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+                    Current: {uploadProgress.currentFile}
+                  </Typography>
+                )}
+                {processingStage && (
+                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+                    {processingStage}
+                  </Typography>
+                )}
               </Box>
             )}
 

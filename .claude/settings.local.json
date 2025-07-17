@@ -5,7 +5,11 @@
       "Bash(docker pull:*)",
       "Bash(docker-compose:*)",
       "Bash(curl:*)",
-      "Bash(docker exec:*)"
+      "Bash(docker exec:*)",
+      "Bash(node:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm run:*)",
+      "Bash(npm install)"
     ],
     "deny": []
   }

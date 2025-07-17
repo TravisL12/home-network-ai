@@ -182,6 +182,12 @@ app.get('/api/status', async (req, res) => {
           title: doc.title,
           fileType: doc.fileType,
           createdAt: doc.createdAt
+        })),
+        allDocuments: documents.map(doc => ({
+          title: doc.title,
+          fileType: doc.fileType,
+          createdAt: doc.createdAt,
+          id: doc.id
         }))
       },
       timestamp: new Date().toISOString()
