@@ -1,7 +1,7 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
-import CssBaseline from '@mui/material/CssBaseline';
+import React from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { ThemeProvider, createTheme } from "@mui/material/styles";
+import CssBaseline from "@mui/material/CssBaseline";
 import {
   Box,
   AppBar,
@@ -13,45 +13,44 @@ import {
   ListItemIcon,
   ListItemText,
   ListItemButton,
-  Divider,
   Container,
-} from '@mui/material';
+} from "@mui/material";
 import {
   Chat as ChatIcon,
   Description as DocumentIcon,
   Dashboard as DashboardIcon,
   Home as HomeIcon,
-} from '@mui/icons-material';
-import { useNavigate, useLocation } from 'react-router-dom';
+} from "@mui/icons-material";
+import { useNavigate, useLocation } from "react-router-dom";
 
-import ChatInterface from './components/ChatInterface';
-import DocumentManager from './components/DocumentManager';
-import StatusDashboard from './components/StatusDashboard';
+import ChatInterface from "./components/ChatInterface";
+import DocumentManager from "./components/DocumentManager";
+import StatusDashboard from "./components/StatusDashboard";
 
 const theme = createTheme({
   palette: {
-    mode: 'light',
+    mode: "light",
     primary: {
-      main: '#2196f3',
+      main: "#2196f3",
     },
     secondary: {
-      main: '#f50057',
+      main: "#f50057",
     },
     background: {
-      default: '#f5f5f5',
+      default: "#f5f5f5",
     },
   },
   typography: {
-    fontFamily: 'Roboto, Arial, sans-serif',
+    fontFamily: "Roboto, Arial, sans-serif",
   },
 });
 
 const drawerWidth = 240;
 
 const menuItems = [
-  { text: 'Chat', icon: <ChatIcon />, path: '/chat' },
-  { text: 'Documents', icon: <DocumentIcon />, path: '/documents' },
-  { text: 'Status', icon: <DashboardIcon />, path: '/status' },
+  { text: "Chat", icon: <ChatIcon />, path: "/chat" },
+  { text: "Documents", icon: <DocumentIcon />, path: "/documents" },
+  { text: "Status", icon: <DashboardIcon />, path: "/status" },
 ];
 
 function Navigation() {
@@ -70,12 +69,12 @@ function Navigation() {
         flexShrink: 0,
         [`& .MuiDrawer-paper`]: {
           width: drawerWidth,
-          boxSizing: 'border-box',
+          boxSizing: "border-box",
         },
       }}
     >
       <Toolbar />
-      <Box sx={{ overflow: 'auto' }}>
+      <Box sx={{ overflow: "auto" }}>
         <List>
           {menuItems.map((item) => (
             <ListItem key={item.text} disablePadding>
@@ -98,17 +97,23 @@ function HomePage() {
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Typography variant="h2" component="h1" gutterBottom>
-        Home Network AI
+        Home Network AI - Hot Reloading Test
       </Typography>
-      <Typography variant="h5" component="h2" gutterBottom color="text.secondary">
+      <Typography
+        variant="h5"
+        component="h2"
+        gutterBottom
+        color="text.secondary"
+      >
         Your Personal AI Assistant
       </Typography>
       <Typography variant="body1" paragraph>
-        Welcome to your personal AI assistant powered by Ollama and Weaviate. 
-        This system allows you to chat with your documents, manage your knowledge base, 
-        and get intelligent responses based on your personal data.
+        Welcome to your personal AI assistant powered by Ollama and Weaviate.
+        This system allows you to chat with your documents, manage your
+        knowledge base, and get intelligent responses based on your personal
+        data.
       </Typography>
-      
+
       <Box sx={{ mt: 4 }}>
         <Typography variant="h6" gutterBottom>
           Features:
@@ -152,7 +157,7 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Router>
-        <Box sx={{ display: 'flex' }}>
+        <Box sx={{ display: "flex" }}>
           <AppBar
             position="fixed"
             sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}
@@ -164,17 +169,17 @@ function App() {
               </Typography>
             </Toolbar>
           </AppBar>
-          
+
           <Navigation />
-          
+
           <Box
             component="main"
             sx={{
               flexGrow: 1,
               p: 3,
               width: { sm: `calc(100% - ${drawerWidth}px)` },
-              height: '100vh',
-              overflow: 'auto',
+              height: "100vh",
+              overflow: "auto",
             }}
           >
             <Toolbar />

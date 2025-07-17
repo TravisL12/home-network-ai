@@ -34,7 +34,7 @@ app.get('/', (req, res) => {
 
 app.post('/api/chat', async (req, res) => {
   try {
-    const { message } = req.body;
+    const { message, model } = req.body;
     
     // Check if models are available
     const models = await ollamaService.getModels();
@@ -65,7 +65,7 @@ app.post('/api/chat', async (req, res) => {
     }
     
     const searchResults = await weaviateService.search(message);
-    const response = await ollamaService.generateResponse(message, searchResults);
+    const response = await ollamaService.generateResponse(message, searchResults, model);
     
     res.json({ response });
   } catch (error) {
@@ -76,7 +76,7 @@ app.post('/api/chat', async (req, res) => {
       // Provide search results as fallback
       try {
         const searchResults = await weaviateService.search(req.body.message);
-        let fallbackResponse = "AI model is still downloading. Here's what I found in your knowledge base:\n\n";
+        let fallbackResponse = `AI model${req.body.model ? ` (${req.body.model})` : ''} is still downloading. Here's what I found in your knowledge base:\n\n`;
         
         if (searchResults.documents && searchResults.documents.length > 0) {
           searchResults.documents.slice(0, 3).forEach((doc, index) => {
@@ -181,13 +181,25 @@ app.get('/api/status', async (req, res) => {
         recentDocuments: documents.slice(0, 5).map(doc => ({
           title: doc.title,
           fileType: doc.fileType,
-          createdAt: doc.createdAt
+          createdAt: doc.createdAt,
+          filePath: doc.filePath,
+          characterCount: doc.content ? doc.content.length : 0
         })),
         allDocuments: documents.map(doc => ({
           title: doc.title,
           fileType: doc.fileType,
           createdAt: doc.createdAt,
-          id: doc.id
+          id: doc.id,
+          filePath: doc.filePath,
+          characterCount: doc.content ? doc.content.length : 0
+        })),
+        allImages: images.map(img => ({
+          filename: img.filename,
+          filePath: img.filePath,
+          format: img.format,
+          createdAt: img.createdAt,
+          characterCount: img.extractedText ? img.extractedText.length : 0,
+          dimensions: img.dimensions
         }))
       },
       timestamp: new Date().toISOString()
@@ -195,6 +207,31 @@ app.get('/api/status', async (req, res) => {
   } catch (error) {
     console.error('Status check error:', error);
     res.status(500).json({ error: 'Failed to check status' });
+  }
+});
+
+app.get('/api/models', async (req, res) => {
+  try {
+    const models = await ollamaService.getModels();
+    res.json({ models });
+  } catch (error) {
+    console.error('Models fetch error:', error);
+    res.status(500).json({ error: 'Failed to fetch models' });
+  }
+});
+
+app.post('/api/models/pull', async (req, res) => {
+  try {
+    const { modelName } = req.body;
+    if (!modelName) {
+      return res.status(400).json({ error: 'Model name is required' });
+    }
+    
+    const result = await ollamaService.pullModel(modelName);
+    res.json(result);
+  } catch (error) {
+    console.error('Model pull error:', error);
+    res.status(500).json({ error: 'Failed to pull model' });
   }
 });
 

@@ -6,7 +6,10 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
-    "test": "jest"
+    "test": "jest",
+    "dev:full": "docker-compose -f docker-compose.dev.yml up --build",
+    "dev:down": "docker-compose -f docker-compose.dev.yml down",
+    "dev:logs": "docker-compose -f docker-compose.dev.yml logs -f"
   },
   "keywords": ["ai", "ollama", "weaviate", "ocr", "vector-database"],
   "author": "",

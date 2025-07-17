@@ -44,8 +44,12 @@ class ImageService {
   async scanDirectories() {
     const imageDirs = [
       '/app/images',
-      '/app/pictures',
-      '/app/documents'
+      '/app/pictures', 
+      '/app/documents',
+      // Development paths
+      path.join(process.cwd(), 'images'),
+      path.join(process.cwd(), 'pictures'),
+      path.join(process.cwd(), 'documents')
     ];
 
     const results = {

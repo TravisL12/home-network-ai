@@ -21,20 +21,30 @@ class OCRService {
 
   async extractTextFromPDF(filePath) {
     try {
+      console.log(`Extracting text from PDF: ${filePath}`);
       const dataBuffer = fs.readFileSync(filePath);
       const data = await pdfParse(dataBuffer);
+      
+      console.log(`PDF parsed successfully. Pages: ${data.numpages}, Text length: ${data.text.length}`);
       
       return {
         text: data.text,
         pages: data.numpages,
-        metadata: data.metadata || {}
+        metadata: { 
+          ...data.metadata, 
+          source: 'pdf-parse',
+          charCount: data.text.length 
+        }
       };
     } catch (error) {
       console.error('PDF parsing error:', error);
       
       if (this.client) {
+        console.log('Falling back to Azure OCR for PDF...');
         return await this.extractTextFromImagePDF(filePath);
       }
+      
+      console.error('No Azure OCR available, PDF processing failed');
       throw error;
     }
   }

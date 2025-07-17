@@ -9,7 +9,12 @@
       "Bash(node:*)",
       "Bash(npm run build:*)",
       "Bash(npm run:*)",
-      "Bash(npm install)"
+      "Bash(npm install)",
+      "Bash(npm start)",
+      "Bash(docker rm:*)",
+      "Bash(docker system prune:*)",
+      "Bash(docker logs:*)",
+      "Bash(mv:*)"
     ],
     "deny": []
   }

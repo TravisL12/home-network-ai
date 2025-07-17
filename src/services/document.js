@@ -10,7 +10,13 @@ class DocumentService {
   constructor() {
     this.supportedDocuments = ['.pdf', '.txt', '.md', '.doc', '.docx'];
     this.supportedImages = ['.jpg', '.jpeg', '.png', '.bmp', '.gif', '.tiff', '.webp'];
-    this.watchedDirectories = ['/app/documents', '/app/images'];
+    this.watchedDirectories = [
+      '/app/documents', 
+      '/app/images',
+      // Development paths
+      path.join(process.cwd(), 'documents'),
+      path.join(process.cwd(), 'images')
+    ];
     this.processedFiles = new Set();
     this.isProcessing = false;
   }

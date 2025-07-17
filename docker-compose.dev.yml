@@ -1,0 +1,95 @@
+version: '3.8'
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_ORIGINS=*
+    networks:
+      - home-ai-network
+
+  weaviate:
+    image: semitechnologies/weaviate:1.22.4
+    container_name: weaviate
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      QUERY_DEFAULTS_LIMIT: 25
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
+      PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+      DEFAULT_VECTORIZER_MODULE: 'none'
+      ENABLE_MODULES: ''
+      CLUSTER_HOSTNAME: 'node1'
+    volumes:
+      - weaviate_data:/var/lib/weaviate
+    networks:
+      - home-ai-network
+
+  home-ai-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: home-ai-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - WEAVIATE_URL=http://weaviate:8080
+      - AZURE_COMPUTER_VISION_ENDPOINT=${AZURE_COMPUTER_VISION_ENDPOINT}
+      - AZURE_COMPUTER_VISION_KEY=${AZURE_COMPUTER_VISION_KEY}
+    volumes:
+      - ./documents:/app/documents
+      - ./images:/app/images
+      - ~/Pictures:/app/pictures:ro
+      # Hot reload for backend
+      - ./src:/app/src
+      - ./package.json:/app/package.json
+    depends_on:
+      - ollama
+      - weaviate
+    networks:
+      - home-ai-network
+
+  home-ai-frontend-dev:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: home-ai-frontend-dev
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
+      - FAST_REFRESH=true
+      - WDS_SOCKET_HOST=localhost
+      - WDS_SOCKET_PORT=3001
+    volumes:
+      # Hot reload for frontend - mount entire src directory
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+      - ./frontend/package.json:/app/package.json
+      - ./frontend/.env:/app/.env
+      # Exclude node_modules from host
+      - /app/node_modules
+    depends_on:
+      - home-ai-app
+    networks:
+      - home-ai-network
+
+volumes:
+  ollama_data:
+  weaviate_data:
+
+networks:
+  home-ai-network:
+    driver: bridge
